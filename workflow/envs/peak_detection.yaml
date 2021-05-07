@@ -1,0 +1,9 @@
+channels:
+    - conda-forge
+    - bioconda
+    - anaconda
+dependencies:
+    - htseq =0.13.5
+    - numpy =1.19.2
+    - pandas =1.1.3
+    - scipy =1.6.2

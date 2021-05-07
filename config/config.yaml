@@ -1,0 +1,34 @@
+# This file should contain everything to configure the workflow on a global scale.
+# In case of sample based data, it should be complemented by a samples.tsv file that contains
+# one row per sample. It can be parsed easily via pandas.
+samples: "config/samples.tsv"
+
+threads: 4
+
+reference:
+    gtf:
+        - index/Saccharomyces_cerevisiae.R64-1-1.101.womito.gtf
+    genome:
+        - index/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa
+    chrom_len:
+        - resources/cromossome_length.tsv
+
+expression:
+    cutoff: 1000
+
+params:
+    trim:
+        - "--fastqc"
+        - "--trim1"
+        - "--clip_R1 4"
+        - "--max_n 0"
+    star:
+        - "--readFilesCommand zcat"
+        - "--outFilterMultimapNmax 99999999"
+        - "--outFilterMismatchNmax 999"
+        - "--outFilterMatchNminOverLread 1"
+        - "--alignIntronMax 1"
+        - "--outSAMtype BAM SortedByCoordinate"
+        - "--outReadsUnmapped Fastx"
+        - "--quantMode GeneCounts"
+        - "--limitBAMsortRAM 1200000000"

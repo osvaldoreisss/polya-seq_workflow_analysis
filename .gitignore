@@ -127,3 +127,18 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Reference files and input files
+index/*
+libs/*
+results/classify/*
+results/concatenated/*
+results/filter_non_specific_annealing/*
+results/htseq/*
+results/logs/*
+results/mapped/*
+results/mapped_uniq/*
+results/peak_detection/*
+results/quality_analysis/*
+results/quantification/*
+results/trim_5_prime_Ts/*
