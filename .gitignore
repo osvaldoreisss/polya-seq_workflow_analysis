@@ -142,3 +142,4 @@ results/peak_detection/*
 results/quality_analysis/*
 results/quantification/*
 results/trim_5_prime_Ts/*
+.snakemake

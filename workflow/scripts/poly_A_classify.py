@@ -37,6 +37,8 @@ def create_utr(gtf, five_length, three_length):
                 pass
         #print(feature)
         try:
+            if feature.attr['gene_biotype'] != 'protein_coding':
+                feature.type = feature.attr['gene_biotype']
             gaos[feature.iv] += str(feature)
         except IndexError:
             pass
@@ -56,8 +58,8 @@ def invert_read_strand(read):
 
 def feature_classify(read, gaos):
     step_set = [step_set for i, step_set in gaos[read.iv].steps()][0]
-    
-    feature_genes = set(re.findall(r"(\w+[prime|CDS]\w+\s'\w+[-]*\w+')", str(step_set)))
+    #print(str(step_set), read.iv)
+    feature_genes = set(re.findall(r"(\w+[prime|CDS|ncRNA|rRNA|tRNA|snoRNA|snRNA|pseudogene|transposable_element]\w+\s'\w+[-|(]*\w+[)]*\w*')", str(step_set)))
     feat_gene_dict = defaultdict(dict)
     gene = ""
     for f in feature_genes:
@@ -78,6 +80,30 @@ def feature_classify(read, gaos):
         elif 'CDS' in features:
             classification = 'CDS'
             gene = feat_gene_dict['CDS']
+        elif 'ncRNA' in features:
+            classification = 'ncRNA'
+            gene = feat_gene_dict['ncRNA']
+            #print(f"AQUIII  -> {gene}")
+        elif 'rRNA' in features:
+            classification = 'rRNA'
+            gene = feat_gene_dict['rRNA']
+        elif 'tRNA' in features:
+            classification = 'tRNA'
+            gene = feat_gene_dict['tRNA']
+        elif 'snoRNA' in features:
+            classification = 'snoRNA'
+            gene = feat_gene_dict['snoRNA']
+        elif 'snRNA' in features:
+            classification = 'snRNA'
+            gene = feat_gene_dict['snRNA']
+        elif 'pseudogene' in features:
+            classification = 'pseudogene'
+            gene = feat_gene_dict['pseudogene']
+        elif 'transposable_element' in features:
+            classification = 'transposable_element'
+            gene = feat_gene_dict['transposable_element']
+        
+        
     #print(classification, gene, str(feature_genes), str(step_set))
     if classification:
         return classification, gene
@@ -92,7 +118,7 @@ def classify(gtf, bam):
     classification_result_gene = defaultdict(dict)
     reads_unclassified_tmp = []
     reads_unclassified = []
-    for read in bam:    
+    for read in bam:
         read = invert_read_strand(read)
         feature, gene = feature_classify(read, gaos)
         #print(f"-->>{feature} {gene} {classification_result}\n")
@@ -102,6 +128,7 @@ def classify(gtf, bam):
             except (KeyError, TypeError) as _:
                 classification_result[feature]=1
             try:
+                #print(feature,gene)
                 classification_result_gene[feature][gene]+=1
             except(KeyError, TypeError) as _:
                 classification_result_gene[feature][gene]=1
@@ -140,7 +167,14 @@ def main():
     cds_out = open(f"{args.prefix}_cds_out.txt", 'w')
     five_out = open(f"{args.prefix}_five_out.txt", 'w')
     three_out = open(f"{args.prefix}_three_out.txt", 'w')
-    
+    ncrna_out = open(f"{args.prefix}_ncrna_out.txt", 'w')
+    rrna_out = open(f"{args.prefix}_rrna_out.txt", 'w')
+    trna_out = open(f"{args.prefix}_trna_out.txt", 'w')
+    snorna_out = open(f"{args.prefix}_snorna_out.txt", 'w')
+    snrna_out = open(f"{args.prefix}_snrna_out.txt", 'w')
+    pseudogene_out = open(f"{args.prefix}_pseudogene_out.txt", 'w')
+    transposable_element_out = open(f"{args.prefix}_transposable-element_out.txt", 'w')
+
     classification, genes = classify(args.gtf, args.bam)
     print(dict(classification))
 
@@ -162,6 +196,41 @@ def main():
         except (KeyError, TypeError) as _:
             genes['CDS'][gene] = 0
             cds_out.write(f"{gene}\t{genes['CDS'][gene]}\n")
+        try:
+            ncrna_out.write(f"{gene}\t{genes['ncRNA'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['ncRNA'][gene] = 0
+            ncrna_out.write(f"{gene}\t{genes['ncRNA'][gene]}\n")
+        try:
+            rrna_out.write(f"{gene}\t{genes['rRNA'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['rRNA'][gene] = 0
+            rrna_out.write(f"{gene}\t{genes['rRNA'][gene]}\n")
+        try:
+            trna_out.write(f"{gene}\t{genes['tRNA'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['tRNA'][gene] = 0
+            trna_out.write(f"{gene}\t{genes['tRNA'][gene]}\n")
+        try:
+            snorna_out.write(f"{gene}\t{genes['snoRNA'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['snoRNA'][gene] = 0
+            snorna_out.write(f"{gene}\t{genes['snoRNA'][gene]}\n")
+        try:
+            snrna_out.write(f"{gene}\t{genes['snRNA'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['snRNA'][gene] = 0
+            snrna_out.write(f"{gene}\t{genes['snRNA'][gene]}\n")
+        try:
+            pseudogene_out.write(f"{gene}\t{genes['pseudogene'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['pseudogene'][gene] = 0
+            pseudogene_out.write(f"{gene}\t{genes['pseudogene'][gene]}\n")
+        try:
+            transposable_element_out.write(f"{gene}\t{genes['transposable_element'][gene]}\n")
+        except (KeyError, TypeError) as _:
+            genes['transposable_element'][gene] = 0
+            transposable_element_out.write(f"{gene}\t{genes['transposable_element'][gene]}\n")
 
 if __name__ == "__main__":
     main()

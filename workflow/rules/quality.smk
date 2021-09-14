@@ -13,7 +13,7 @@ rule trim_galore:
     shell:
         "trim_galore {params.trim} --cores {threads} --output_dir {output} {input} 2> {log}"
 
-rule concatenate_rv_comp:
+rule concatenate:
     input: 
         lambda wildcards: \
             [f"results/quality_analysis/{wildcards.sample}.{run}" \
