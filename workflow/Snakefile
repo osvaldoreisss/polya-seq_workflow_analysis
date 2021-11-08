@@ -26,7 +26,8 @@ rule all:
         # Subsequent target rules can be specified below. They should start with all_*.
         "results/classify/feature_distribution.csv",
         expand("results/peak_detection/{sample}.bed", sample=samples['sample']),
-        "results/plots/fig_1A.svg"
+        "results/plots/fig_1A.svg",
+        expand("results/plots/fig_1B_{condition}.svg", condition=set(samples['condition']))
 
 
 include: "rules/quality.smk"

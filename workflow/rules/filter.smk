@@ -109,3 +109,53 @@ rule plot_polyadenylation_by_feature:
         ax.bar_label(ax.containers[1], fmt='%.1f%%')
         ax.legend(labels=['WT_Rep1','WT_Rep2'])
         ax.figure.savefig(output[0])
+
+
+rule plot_premature_polyadenylation_x_expression:
+    input:
+        get_quantification
+    output:
+        "results/plots/fig_1B_{condition}.svg"
+    run:
+        from sklearn.metrics import r2_score
+        import pandas as pd
+        import matplotlib.pyplot as pl
+
+        df_cds = pd.DataFrame()
+        df_three = pd.DataFrame()
+
+        cds_file_count = 0
+        three_file_count = 0
+
+        for file in input:
+            df_tmp = pd.DataFrame()
+            if 'cds_out' in file:
+                df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
+                if not df_cds.empty:
+                    df_cds = df_cds + df_tmp
+                else:
+                    df_cds = df_tmp
+                cds_file_count+=1
+            elif 'three_out' in file:
+                df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
+                if not df_three.empty:
+                    df_three = df_three + df_tmp
+                else:
+                    df_three = df_tmp.copy()
+                three_file_count+=1
+
+        df_cds = df_cds / cds_file_count
+        df_three = df_three / three_file_count
+
+
+        fig = pl.figure()
+        ax = pl.gca()
+        ax.scatter(df_three, df_cds , c='blue')
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+        ax.set_xlim(0, 1000000)
+        ax.set_ylim(0, 1000000)
+        ax.set_xlabel("Counts 3' UTR")
+        ax.set_ylabel("Counts CDS")
+        ax.set_title(wildcards.condition + ' R2: ' + "{:.4f}".format(r2_score(df_three, df_cds)))
+        ax.figure.savefig(output[0])
