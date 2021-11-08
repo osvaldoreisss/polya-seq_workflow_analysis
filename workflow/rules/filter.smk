@@ -52,13 +52,13 @@ rule feauture_distribution:
             with open(file) as json_file:
                 data = json_file.read().replace("\'", "\"")
                 res = json.loads(data)
-                res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS']]
+                res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS'], res['ncRNA'], res['tRNA'], res['snoRNA'], res['snRNA'], res['pseudogene'], res['transposable_element']]
                 df_tmp = pd.DataFrame(res).T
                 df_tmp.index=[file.split("/")[2].split('.')[0]]
                 df = df.append(df_tmp)
 
-        df.columns = ['five_prime_utr', 'three_prime_utr', 'cds']
-        df.loc[:,"five_prime_utr":"cds"] = df.loc[:,"five_prime_utr":"cds"].div(df.sum(axis=1), axis=0)
+        df.columns = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+        df.loc[:,"five_prime_utr":"transposable_element"] = df.loc[:,"five_prime_utr":"transposable_element"].div(df.sum(axis=1), axis=0)
         data = df.sort_index()
         data = data * 100
         data.to_csv(output[0])
@@ -74,3 +74,38 @@ rule peak_detection:
         chr_len=config["reference"]["chrom_len"]
     shell:
         "python workflow/scripts/peak_detection.py --sam {input} --chrom_len_file {params.chr_len} --output {output}"
+
+rule plot_polyadenylation_by_feature:
+    input:
+        "results/classify/SRR11849623.tsv",
+        "results/classify/SRR11849624.tsv"
+    output:
+        "results/plots/fig_1A.svg"
+    run:
+        import json
+        import re
+        import pandas as pd
+        import matplotlib.pyplot as pl
+        import numpy as np
+
+        df = pd.DataFrame()
+        for file in input:
+            with open(file) as json_file:
+                data = json_file.read().replace("\'", "\"")
+                res = json.loads(data)
+                res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS']]
+                df_tmp = pd.DataFrame(res).T
+                df_tmp.index=[file.split("/")[2].split('.')[0]]
+                df = df.append(df_tmp)
+        
+        df.columns = ['five_prime_utr', 'three_prime_utr', 'cds']
+        df.loc[:,"five_prime_utr":"cds"] = df.loc[:,"five_prime_utr":"cds"].div(df.sum(axis=1), axis=0)
+        data = df.sort_index()
+        data = data * 100
+
+        ax = data.T.plot(kind='bar', y=['SRR11849623', 'SRR11849624'])
+
+        ax.bar_label(ax.containers[0], fmt='%.1f%%')
+        ax.bar_label(ax.containers[1], fmt='%.1f%%')
+        ax.legend(labels=['WT_Rep1','WT_Rep2'])
+        ax.figure.savefig(output[0])
