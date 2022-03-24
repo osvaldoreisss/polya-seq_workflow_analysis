@@ -52,7 +52,6 @@ def filter(genome, sam, out):
             seq = reverse_complement(seq)
         #print(f"{line}\t{seq}\t{seq[0:(t_count)]}\t{seq[(11-t_count):11]}\t{t_count}")
         if (seq[0:t_count].count('A') < t_count -1):
-            print(f"{seq[0:t_count]}\t{line}")
             bam_writer.write( line )
     bam_writer.close()
     

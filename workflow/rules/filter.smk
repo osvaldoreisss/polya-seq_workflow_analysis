@@ -23,7 +23,7 @@ rule filter_non_specific_annealing:
 
 rule classify_polya:
     input: 
-        "results/filter_non_specific_annealing/{sample}.bam",
+        "results/filter_bam_by_peak/{sample}.bam",
         #"results/expressed/most_expressed.txt"
     output:
         "results/classify/{sample}.tsv",
@@ -52,8 +52,15 @@ rule feauture_distribution:
             with open(file) as json_file:
                 data = json_file.read().replace("\'", "\"")
                 res = json.loads(data)
-                res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS'], res['ncRNA'], res['tRNA'], res['snoRNA'], res['snRNA'], res['pseudogene'], res['transposable_element']]
-                df_tmp = pd.DataFrame(res).T
+                features = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+                out = list()
+                for feature in features:
+                    if feature in res:
+                        out.append(res[feature])
+                    else:
+                        out.append(0)
+                #res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS'], res['ncRNA'], res['tRNA'], res['snoRNA'], res['snRNA'], res['pseudogene'], res['transposable_element']]
+                df_tmp = pd.DataFrame(out).T
                 df_tmp.index=[file.split("/")[2].split('.')[0]]
                 df = df.append(df_tmp)
 
@@ -67,13 +74,42 @@ rule peak_detection:
     input: 
         "results/filter_non_specific_annealing/{sample}.bam",
     output:
-        "results/peak_detection/{sample}.bed"
+        "results/peak_detection/{sample}.bed",
+        "results/peak_detection/{sample}_three.bed",
+        "results/peak_detection/{sample}.bam"
     conda:
         "../envs/peak_detection.yaml"
     params:
-        chr_len=config["reference"]["chrom_len"]
+        chr_len=config["reference"]["chrom_len"],
+        gtf=config["reference"]["gtf"],
+        **config["params"]
     shell:
-        "python workflow/scripts/peak_detection.py --sam {input} --chrom_len_file {params.chr_len} --output {output}"
+        "python workflow/scripts/peak_detection.py --sam {input} --chrom_len_file {params.chr_len} --gtf {params.gtf} --output {output[0]} --output_three {output[1]} --output_bam {output[2]} {params.peak_detection}"
+
+rule filter_bam_by_peak:
+    input:
+        "results/peak_detection/{sample}.bed",
+        "results/peak_detection/{sample}.bam"
+    output:
+        "results/filter_bam_by_peak/{sample}_read_names.txt"
+    conda:
+        "../envs/filter.yaml"
+    shell:
+        "bedtools intersect -wa -s -a {input[1]} -b {input[0]} | samtools view /dev/stdin | awk '{{print $1}}' > {output}"
+
+rule select_peak_reads_by_name:
+    input:
+        "results/filter_non_specific_annealing/{sample}.bam",
+        "results/filter_bam_by_peak/{sample}_read_names.txt"
+    output:
+        "results/filter_bam_by_peak/{sample}.bam",
+        "results/filter_bam_by_peak/{sample}.bam.bai"
+    conda:
+        "../envs/filter.yaml"
+    params:
+        genome_fasta=config["reference"]["genome"]
+    shell:
+        "samtools view {input[0]} | grep -f {input[1]} | samtools view -Sb --reference {params.genome_fasta} /dev/stdin | tee {output[0]} | samtools index - {output[1]}"
 
 rule plot_polyadenylation_by_feature:
     input:

@@ -56,8 +56,8 @@ def invert_read_strand(read):
 
     return read
 
-def feature_classify(read, gaos):
-    step_set = [step_set for i, step_set in gaos[read.iv].steps()][0]
+def feature_classify(iv, gaos):
+    step_set = [step_set for i, step_set in gaos[iv].steps()][0]
     #print(str(step_set), read.iv)
     feature_genes = set(re.findall(r"(\w+[prime|CDS|ncRNA|rRNA|tRNA|snoRNA|snRNA|pseudogene|transposable_element]\w+\s'\w+[-|(]*\w+[)]*\w*')", str(step_set)))
     feat_gene_dict = defaultdict(dict)
@@ -120,7 +120,7 @@ def classify(gtf, bam):
     reads_unclassified = []
     for read in bam:
         read = invert_read_strand(read)
-        feature, gene = feature_classify(read, gaos)
+        feature, gene = feature_classify(read.iv, gaos)
         #print(f"-->>{feature} {gene} {classification_result}\n")
         if feature:
             try:
@@ -137,7 +137,7 @@ def classify(gtf, bam):
     
     gaos = create_utr(gtf, 300, 1200)
     for read in reads_unclassified_tmp:
-        feature, gene = feature_classify(read, gaos)
+        feature, gene = feature_classify(read.iv, gaos)
         if feature:
             try:
                 classification_result[feature]+=1
