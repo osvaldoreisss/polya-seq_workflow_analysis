@@ -10,7 +10,7 @@ singularity: "docker://continuumio/miniconda3"
 configfile: "config/config.yaml"
 validate(config, schema="../schemas/config.schema.yaml")
 
-samples = pd.read_csv(config["samples"], sep=",").set_index(["sample","run","condition"], drop=False)
+samples = pd.read_csv(config["samples"], sep=",").set_index(["sample", "run"], drop=False)
 validate(samples, schema="../schemas/samples.schema.yaml")
 
 threads=config['threads']
