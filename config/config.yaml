@@ -11,7 +11,7 @@ reference:
     genome:
         - index/Saccharomyces_cerevisiae.R64-1-1.dna.toplevel.fa
     chrom_len:
-        - resources/cromossome_length.tsv
+        - resources/chrom_len.csv
 
 expression:
     cutoff: 1000
@@ -32,3 +32,5 @@ params:
         - "--outReadsUnmapped Fastx"
         - "--quantMode GeneCounts"
         - "--limitBAMsortRAM 1200000000"
+    peak_detection:
+        - "--region_len 50"
