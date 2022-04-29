@@ -35,6 +35,20 @@ rule classify_polya:
     shell:
         "python workflow/scripts/poly_A_classify.py --gtf {params.gtf} --bam {input[0]} --prefix {output[1]} > {output[0]}; touch {output[1]}"
 
+rule classify_polya_old:
+    input: 
+        "results/filter_non_specific_annealing/{sample}.bam",
+        #"results/expressed/most_expressed.txt"
+    output:
+        "results/classify_old/{sample}.tsv",
+        "results/quantification_old/{sample}"
+    conda:
+        "../envs/filter.yaml"
+    params:
+        gtf=config["reference"]["gtf"]
+    shell:
+        "python workflow/scripts/poly_A_classify.py --gtf {params.gtf} --bam {input[0]} --prefix {output[1]} > {output[0]}; touch {output[1]}"
+
 rule feauture_distribution:
     input:
         expand("results/classify/{sample}.tsv", sample=samples['sample'])
@@ -52,7 +66,44 @@ rule feauture_distribution:
             with open(file) as json_file:
                 data = json_file.read().replace("\'", "\"")
                 res = json.loads(data)
-                features = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+                #features = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+                features = ['five_prime_utr', 'three_prime_utr', 'CDS', 'ncRNA',  'tRNA', 'snoRNA', 'snRNA', 'pseudogene', 'transposable_element']
+                out = list()
+                for feature in features:
+                    if feature in res:
+                        out.append(res[feature])
+                    else:
+                        out.append(0)
+                #res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS'], res['ncRNA'], res['tRNA'], res['snoRNA'], res['snRNA'], res['pseudogene'], res['transposable_element']]
+                df_tmp = pd.DataFrame(out).T
+                df_tmp.index=[file.split("/")[2].split('.')[0]]
+                df = df.append(df_tmp)
+
+        df.columns = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+        df.loc[:,"five_prime_utr":"transposable_element"] = df.loc[:,"five_prime_utr":"transposable_element"].div(df.sum(axis=1), axis=0)
+        data = df.sort_index()
+        data = data * 100
+        data.to_csv(output[0])
+
+rule feauture_distribution_old:
+    input:
+        expand("results/classify_old/{sample}.tsv", sample=samples['sample'])
+    output:
+        "results/classify_old/feature_distribution.csv"
+    run:
+        import json
+        import re
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
+        df = pd.DataFrame()
+        
+        for file in input:
+            with open(file) as json_file:
+                data = json_file.read().replace("\'", "\"")
+                res = json.loads(data)
+                #features = ['five_prime_utr', 'three_prime_utr', 'cds', 'ncrna', 'trna', 'snorna', 'snrna', 'pseudogene', 'transposable_element']
+                features = ['five_prime_utr', 'three_prime_utr', 'CDS', 'ncRNA',  'tRNA', 'snoRNA', 'snRNA', 'pseudogene', 'transposable_element']
                 out = list()
                 for feature in features:
                     if feature in res:
@@ -103,13 +154,24 @@ rule select_peak_reads_by_name:
         "results/filter_bam_by_peak/{sample}_read_names.txt"
     output:
         "results/filter_bam_by_peak/{sample}.bam",
-        "results/filter_bam_by_peak/{sample}.bam.bai"
-    conda:
-        "../envs/filter.yaml"
     params:
         genome_fasta=config["reference"]["genome"]
-    shell:
-        "samtools view {input[0]} | grep -f {input[1]} | samtools view -Sb --reference {params.genome_fasta} /dev/stdin | tee {output[0]} | samtools index - {output[1]}"
+    run:
+        import HTSeq
+        import pysam
+
+        bam_reader = HTSeq.BAM_Reader(input[0])
+
+        bam_writer = HTSeq.BAM_Writer.from_BAM_Reader( output[0], bam_reader )
+
+        read_set = set()
+        with open(input[1]) as reads:
+            read_set = {read.rstrip() for read in reads}
+        
+        for line in bam_reader:
+            if line.read.name in read_set:
+                bam_writer.write( line )
+        bam_writer.close()
 
 rule plot_polyadenylation_by_feature:
     input:

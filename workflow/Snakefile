@@ -25,6 +25,8 @@ rule all:
         # The first rule should define the default target files
         # Subsequent target rules can be specified below. They should start with all_*.
         "results/classify/feature_distribution.csv",
+        "results/classify_old/feature_distribution.csv",
+        #expand("results/filter_bam_by_peak/{sample}.bam", sample=samples['sample']),
         #expand("results/peak_detection/{sample}.bed", sample=samples['sample']),
         #"results/plots/fig_1A.svg",
         #expand("results/plots/fig_1B_{condition}.svg", condition=set(samples['condition']))

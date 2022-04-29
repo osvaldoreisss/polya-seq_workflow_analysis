@@ -22,7 +22,7 @@ def get_fastq(wildcards):
     return f"libs/{fastqs.fq1}"
 
 def get_quantification(wildcards):
-    s = samples.loc[(slice(None), slice(None), wildcards.condition),'sample'].dropna()
+    s = samples.set_index(["sample","run","condition"], drop=False).loc[(slice(None), slice(None), wildcards.condition),'sample'].dropna()
     files = list()
     for sample in s:
         files.append(f'results/quantification/{sample}_three_out.txt')
