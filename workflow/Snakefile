@@ -28,7 +28,7 @@ rule all:
         "results/classify_old/feature_distribution.csv",
         #expand("results/filter_bam_by_peak/{sample}.bam", sample=samples['sample']),
         #expand("results/peak_detection/{sample}.bed", sample=samples['sample']),
-        #"results/plots/fig_1A.svg",
+        "results/plots/fig_1A.pdf",
         #expand("results/plots/fig_1B_{condition}.svg", condition=set(samples['condition']))
 
 

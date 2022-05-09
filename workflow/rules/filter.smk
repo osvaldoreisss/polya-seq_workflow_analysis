@@ -175,15 +175,15 @@ rule select_peak_reads_by_name:
 
 rule plot_polyadenylation_by_feature:
     input:
-        "results/classify/SRR11849623.tsv",
-        "results/classify/SRR11849624.tsv"
+        "results/classify_old/SRR11849623.tsv",
+        "results/classify_old/SRR11849624.tsv"
     output:
-        "results/plots/fig_1A.svg"
+        "results/plots/fig_1A.pdf"
     run:
         import json
         import re
         import pandas as pd
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
         import numpy as np
 
         df = pd.DataFrame()
@@ -191,22 +191,37 @@ rule plot_polyadenylation_by_feature:
             with open(file) as json_file:
                 data = json_file.read().replace("\'", "\"")
                 res = json.loads(data)
-                res = [res['five_prime_utr'], res['three_prime_utr'],res['CDS']]
+                res = [res['five_prime_utr'], res['CDS'],res['three_prime_utr']]
                 df_tmp = pd.DataFrame(res).T
                 df_tmp.index=[file.split("/")[2].split('.')[0]]
                 df = df.append(df_tmp)
-        
-        df.columns = ['five_prime_utr', 'three_prime_utr', 'cds']
-        df.loc[:,"five_prime_utr":"cds"] = df.loc[:,"five_prime_utr":"cds"].div(df.sum(axis=1), axis=0)
+
+        df.columns = ['five_prime_utr', 'cds', 'three_prime_utr']
+        df.loc[:,"five_prime_utr":"three_prime_utr"] = df.loc[:,"five_prime_utr":"three_prime_utr"].div(df.sum(axis=1), axis=0)
         data = df.sort_index()
         data = data * 100
 
-        ax = data.T.plot(kind='bar', y=['SRR11849623', 'SRR11849624'])
-
-        ax.bar_label(ax.containers[0], fmt='%.1f%%')
-        ax.bar_label(ax.containers[1], fmt='%.1f%%')
-        ax.legend(labels=['WT_Rep1','WT_Rep2'])
-        ax.figure.savefig(output[0])
+        labels = ['five_prime_utr', 'cds', 'three_prime_utr']
+        x_pos = np.arange(len(labels))
+        means = list(data.mean())
+        stds = list(data.std())
+        
+        fig = plt.figure()
+        ax = plt.gca()
+        print(stds)
+        bars = ax.bar(x_pos, means,
+            yerr=stds,
+            align='center',
+            alpha=0.5,
+            ecolor='black',
+            capsize=10)
+        ax.bar_label(bars, fmt='%.1f%%')
+        ax.set_ylabel('% of transcripts')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.set_title('Distribution of clivages sites across features')
+        #ax.plt.tight_layout()
+        ax.figure.savefig(output[0], format='pdf', transparent=True)
 
 
 rule plot_premature_polyadenylation_x_expression:
