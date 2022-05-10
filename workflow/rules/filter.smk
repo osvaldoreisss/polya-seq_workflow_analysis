@@ -178,7 +178,7 @@ rule plot_polyadenylation_by_feature:
         "results/classify_old/SRR11849623.tsv",
         "results/classify_old/SRR11849624.tsv"
     output:
-        "results/plots/fig_1A.pdf"
+        multiext("results/plots/fig_1A", ".pdf", ".svg", ".png")
     run:
         import json
         import re
@@ -208,67 +208,169 @@ rule plot_polyadenylation_by_feature:
         
         fig = plt.figure()
         ax = plt.gca()
-        print(stds)
+
         bars = ax.bar(x_pos, means,
             yerr=stds,
             align='center',
             alpha=0.5,
             ecolor='black',
-            capsize=10)
+            capsize=10,
+            color='#0072b2')
         ax.bar_label(bars, fmt='%.1f%%')
         ax.set_ylabel('% of transcripts')
         ax.set_xticks(x_pos)
         ax.set_xticklabels(labels)
         ax.set_title('Distribution of clivages sites across features')
         #ax.plt.tight_layout()
-        ax.figure.savefig(output[0], format='pdf', transparent=True)
+        ax.figure.savefig(output[0], transparent=True)
+        ax.figure.savefig(output[1], transparent=True)
+        ax.figure.savefig(output[2], transparent=True)
 
 
 rule plot_premature_polyadenylation_x_expression:
     input:
         get_quantification
     output:
-        "results/plots/fig_1B_{condition}.svg"
+        multiext("results/plots/fig_1B_{condition}", ".pdf", ".svg", ".png")
     run:
-        from sklearn.metrics import r2_score
+            from sklearn.linear_model import LinearRegression
+            import pandas as pd
+            import matplotlib.pyplot as pl
+            
+
+            df_cds = pd.DataFrame()
+            df_three = pd.DataFrame()
+
+            cds_file_count = 0
+            three_file_count = 0
+
+            files = [f"{prefix}_{sufix}" for prefix in input for sufix in ['three_out.txt', 'cds_out.txt']]
+
+            for file in files:
+                df_tmp = pd.DataFrame()
+                if 'cds_out' in file:
+                    df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
+                    if not df_cds.empty:
+                        df_cds = df_cds + df_tmp
+                    else:
+                        df_cds = df_tmp
+                    cds_file_count+=1
+                elif 'three_out' in file:
+                    df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
+                    if not df_three.empty:
+                        df_three = df_three + df_tmp
+                    else:
+                        df_three = df_tmp.copy()
+                    three_file_count+=1
+
+            df_cds = df_cds / cds_file_count
+            df_three = df_three / three_file_count
+
+            model = LinearRegression()
+            model.fit(df_three, df_cds)
+            r_squared = model.score(df_three, df_cds)
+
+            fig = pl.figure()
+            ax = pl.gca()
+            ax.scatter(df_three, df_cds , alpha=0.5, color='#0072b2')
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.set_xlim(0, 1000000)
+            ax.set_ylim(0, 1000000)
+            ax.set_xlabel("Counts 3' UTR")
+            ax.set_ylabel("Counts CDS")
+            ax.set_title(wildcards.condition + ' R2: ' + "{:.2f}".format(r_squared))
+            ax.figure.savefig(output[0], transparent=True)
+            ax.figure.savefig(output[1], transparent=True)
+            ax.figure.savefig(output[2], transparent=True)
+
+rule plot_polyadenylation_in_cds_by_condition:
+    input:
+        expand("results/classify_old/{sample}.tsv", sample=samples['sample'])
+    output:
+        "results/plots/fig_1D.png",
+    run:
+        import json
+        import re
         import pandas as pd
-        import matplotlib.pyplot as pl
+        import matplotlib.pyplot as plt
+        import numpy as np
 
-        df_cds = pd.DataFrame()
-        df_three = pd.DataFrame()
+        cond_sample_dict = dict()
 
-        cds_file_count = 0
-        three_file_count = 0
+        for line in input:
+            sample = line.split('/')[2].split('.')[0]
+            x = samples.loc[(sample, slice(None)),'condition'].dropna()
+            cond_sample_dict[sample] = x[sample][1]
 
+        #print(cond_sample_dict)
+
+        cond_dict_cds = dict()
+        cond_dict_three = dict()
+        cond_dict_five = dict()
         for file in input:
-            df_tmp = pd.DataFrame()
-            if 'cds_out' in file:
-                df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
-                if not df_cds.empty:
-                    df_cds = df_cds + df_tmp
+            with open(file) as json_file:
+                data = json_file.read().replace("\'", "\"")
+                res = json.loads(data)
+                sample = file.split("/")[2].split('.')[0]
+                cond = cond_sample_dict[sample]
+                if cond in cond_dict_cds.keys():
+                    cond_dict_cds[cond].append(res['CDS'])
                 else:
-                    df_cds = df_tmp
-                cds_file_count+=1
-            elif 'three_out' in file:
-                df_tmp = pd.read_csv(file, sep='\t', header=None, index_col=0).sort_index()
-                if not df_three.empty:
-                    df_three = df_three + df_tmp
+                    cond_dict_cds[cond] = []
+                    cond_dict_cds[cond].append(res['CDS'])
+                if cond in cond_dict_five.keys():
+                    cond_dict_five[cond].append(res['five_prime_utr'])
                 else:
-                    df_three = df_tmp.copy()
-                three_file_count+=1
+                    cond_dict_five[cond] = []
+                    cond_dict_five[cond].append(res['five_prime_utr'])
+                if cond in cond_dict_three.keys():
+                    cond_dict_three[cond].append(res['three_prime_utr'])
+                else:
+                    cond_dict_three[cond] = []
+                    cond_dict_three[cond].append(res['three_prime_utr'])
+        
 
-        df_cds = df_cds / cds_file_count
-        df_three = df_three / three_file_count
+        for cond in cond_dict_cds.keys():
+            for i in range(len(cond_dict_cds[cond])):
+                total_cds = cond_dict_cds[cond][i]
+                total_five = cond_dict_five[cond][i]
+                total_three = cond_dict_three[cond][i]
+
+                total = total_cds + total_five + total_three
+                cond_dict_cds[cond][i] = (cond_dict_cds[cond][i]/total)*100
+                cond_dict_five[cond][i] = (cond_dict_five[cond][i]/total)*100
+                cond_dict_three[cond][i] = (cond_dict_three[cond][i]/total)*100
+
+                
+
+        data = pd.DataFrame.from_dict(cond_dict_cds)
+
+        labels = list(data.columns)
+        x_pos = np.arange(len(labels))
+        means = list(data.mean())
+        stds = list(data.std())
+        print(len(labels))
+        print(len(means))
+        print(stds)
 
 
-        fig = pl.figure()
-        ax = pl.gca()
-        ax.scatter(df_three, df_cds , c='blue')
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-        ax.set_xlim(0, 1000000)
-        ax.set_ylim(0, 1000000)
-        ax.set_xlabel("Counts 3' UTR")
-        ax.set_ylabel("Counts CDS")
-        ax.set_title(wildcards.condition + ' R2: ' + "{:.4f}".format(r2_score(df_three, df_cds)))
-        ax.figure.savefig(output[0])
+        fig = plt.figure()
+        ax = plt.gca()
+
+        bars = ax.bar(x_pos, means,
+            yerr=stds,
+            align='center',
+            alpha=0.5,
+            ecolor='black',
+            capsize=10,
+            color='#0072b2')
+        ax.bar_label(bars, fmt='%.1f%%')
+        ax.set_ylabel('% of transcripts')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.set_title('Premature Polyadenylation in different conditions')
+        #ax.plt.tight_layout()
+        ax.figure.savefig(output[0], transparent=True)
+
+                
