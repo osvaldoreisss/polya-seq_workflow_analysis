@@ -27,3 +27,9 @@ def get_quantification(wildcards):
     s = samples_copy.set_index(["sample","run","condition"], drop=False).loc[(slice(None), slice(None), wildcards.condition),'sample'].dropna()
     result = expand( "results/quantification_old/{x}", x = s )
     return result
+
+def get_polya_by_region(wildcards):
+    samples_copy = samples.copy()
+    s = samples_copy.set_index(["sample","run","condition"], drop=False).loc[(slice(None), slice(None), wildcards.condition),'sample'].dropna()
+    result = expand( "results/premature_polya_by_region/{x}.txt", x = s )
+    return result

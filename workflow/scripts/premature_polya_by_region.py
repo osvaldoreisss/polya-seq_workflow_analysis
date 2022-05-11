@@ -66,7 +66,8 @@ def classify(gtf, bam):
         if r == -1:
             continue
         region[r]+=1
-        print(region)
+    
+    return region
         
 
 
@@ -74,9 +75,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--gtf')
     ap.add_argument('--bam')
+    ap.add_argument('--output')
     args = ap.parse_args()
 
-    classify(args.gtf, args.bam)
+    regions = classify(args.gtf, args.bam)
+
+    with open(args.output, 'w') as out:
+        out.write(str(regions))
 
 
 if __name__ == "__main__":

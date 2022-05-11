@@ -173,6 +173,19 @@ rule select_peak_reads_by_name:
                 bam_writer.write( line )
         bam_writer.close()
 
+rule premature_polya_by_region:
+    input: 
+        config["reference"]["gtf"],
+        "results/filter_non_specific_annealing/{sample}.bam"
+    output:
+        "results/premature_polya_by_region/{sample}.txt"
+    conda:
+        "../envs/filter.yaml"
+    log:
+        "results/logs/premature_polya_by_region/{sample}.log"
+    shell:
+        "python workflow/scripts/premature_polya_by_region.py --gtf {input[0]} --bam {input[1]} --output {output} 2> {log};"
+
 rule plot_polyadenylation_by_feature:
     input:
         "results/classify_old/SRR11849623.tsv",
@@ -284,11 +297,66 @@ rule plot_premature_polyadenylation_x_expression:
             ax.figure.savefig(output[1], transparent=True)
             ax.figure.savefig(output[2], transparent=True)
 
+rule plot_polyadenylation_in_cds_by_region:
+    input:
+        get_polya_by_region
+    output:
+        multiext("results/plots/fig_1C_{condition}", ".pdf", ".svg", ".png")
+    run:
+        import json
+        import re
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import numpy as np
+        from collections import Counter
+
+        data = pd.DataFrame()
+        for file in input:
+            with open(file) as json_file:
+                d = json_file.read().replace("\'", "\"")
+                res = json.loads(d)
+                data = data.append(pd.DataFrame(res, index=[0]))
+
+
+        data.loc[:,"1":"5"] = data.loc[:,"1":"5"].div(data.sum(axis=1), axis=0)
+        #data = data.sort_index()
+        data = data * 100
+
+        labels = [str(int((int(x)/len(data.columns))*100))+'%' for x in data.columns]
+        x_pos = np.arange(len(labels))
+        means = list(data.mean())
+        stds = list(data.std())
+
+        plt.rcParams['figure.figsize'] = [6.8, 6.8]
+        plt.rcParams['figure.autolayout'] = True
+        print(plt.rcParams['figure.figsize'])
+        
+
+        fig = plt.figure()
+        ax = plt.gca()
+
+        bars = ax.bar(x_pos, means,
+            yerr=stds,
+            align='center',
+            alpha=0.5,
+            ecolor='black',
+            capsize=10,
+            color='#0072b2')
+        ax.bar_label(bars, fmt='%.1f%%')
+        ax.set_ylabel('% of premature transcripts')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.set_title(f'Premature Polyadenylation by CDS region ({wildcards.condition})')
+        plt.tight_layout()
+        ax.figure.savefig(output[0], transparent=True)
+        ax.figure.savefig(output[1], transparent=True)
+        ax.figure.savefig(output[2], transparent=True)
+
 rule plot_polyadenylation_in_cds_by_condition:
     input:
         expand("results/classify_old/{sample}.tsv", sample=samples['sample'])
     output:
-        "results/plots/fig_1D.png",
+        multiext("results/plots/fig_3A", ".pdf", ".svg", ".png")
     run:
         import json
         import re
@@ -355,6 +423,11 @@ rule plot_polyadenylation_in_cds_by_condition:
         print(stds)
 
 
+        plt.rcParams['figure.figsize'] = [6.8, 6.8]
+        plt.rcParams['figure.autolayout'] = True
+        print(plt.rcParams['figure.figsize'])
+        
+
         fig = plt.figure()
         ax = plt.gca()
 
@@ -370,7 +443,8 @@ rule plot_polyadenylation_in_cds_by_condition:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(labels)
         ax.set_title('Premature Polyadenylation in different conditions')
-        #ax.plt.tight_layout()
+        plt.xticks(rotation=90)
+        plt.tight_layout()
         ax.figure.savefig(output[0], transparent=True)
-
-                
+        ax.figure.savefig(output[1], transparent=True)
+        ax.figure.savefig(output[2], transparent=True)
