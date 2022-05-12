@@ -178,13 +178,14 @@ rule premature_polya_by_region:
         config["reference"]["gtf"],
         "results/filter_non_specific_annealing/{sample}.bam"
     output:
-        "results/premature_polya_by_region/{sample}.txt"
+        "results/premature_polya_by_region/{sample}.txt",
+        "results/premature_polya_by_region/{sample}_stop_in_frame.txt"
     conda:
         "../envs/filter.yaml"
     log:
         "results/logs/premature_polya_by_region/{sample}.log"
     shell:
-        "python workflow/scripts/premature_polya_by_region.py --gtf {input[0]} --bam {input[1]} --output {output} 2> {log};"
+        "python workflow/scripts/premature_polya_by_region.py --gtf {input[0]} --bam {input[1]} --output {output[0]} --out_not_stop_in_frame {output[1]} 2> {log};"
 
 rule plot_polyadenylation_by_feature:
     input:
@@ -347,6 +348,92 @@ rule plot_polyadenylation_in_cds_by_region:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(labels)
         ax.set_title(f'Premature Polyadenylation by CDS region ({wildcards.condition})')
+        plt.tight_layout()
+        ax.figure.savefig(output[0], transparent=True)
+        ax.figure.savefig(output[1], transparent=True)
+        ax.figure.savefig(output[2], transparent=True)
+
+rule plot_polyadenylation_in_cds_with_stop_in_frame:
+    input:
+        expand("results/premature_polya_by_region/{sample}_stop_in_frame.txt", sample=samples['sample'])
+    output:
+        multiext("results/plots/fig_1D", ".pdf", ".svg", ".png")
+    run:
+        import json
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        cond_sample_dict = dict()
+
+        for line in input:
+            sample = line.split('/')[2].split('_')[0]
+            x = samples.loc[(sample, slice(None)),'condition'].dropna()
+            cond_sample_dict[sample] = x[sample][1]
+
+        #print(cond_sample_dict)
+
+        cond_dict_out_frame = dict()
+        cond_dict_in_frame = dict()
+        for file in input:
+            with open(file) as json_file:
+                data = json_file.read().replace("\'", "\"")
+                res = json.loads(data)
+                sample = file.split("/")[2].split('_')[0]
+                cond = cond_sample_dict[sample]
+                if cond in cond_dict_out_frame.keys():
+                    cond_dict_out_frame[cond].append(res['out_frame'])
+                else:
+                    cond_dict_out_frame[cond] = []
+                    cond_dict_out_frame[cond].append(res['out_frame'])
+                if cond in cond_dict_in_frame.keys():
+                    cond_dict_in_frame[cond].append(res['in_frame'])
+                else:
+                    cond_dict_in_frame[cond] = []
+                    cond_dict_in_frame[cond].append(res['in_frame'])
+        
+
+        for cond in cond_dict_in_frame.keys():
+            for i in range(len(cond_dict_in_frame[cond])):
+                total_in_frame = cond_dict_in_frame[cond][i]
+                total_out_frame = cond_dict_out_frame[cond][i]
+
+                total = total_in_frame + total_out_frame
+                cond_dict_in_frame[cond][i] = (cond_dict_in_frame[cond][i]/total)*100
+                cond_dict_out_frame[cond][i] = (cond_dict_out_frame[cond][i]/total)*100
+
+        data = pd.DataFrame.from_dict(cond_dict_out_frame)
+
+        labels = list(data.columns)
+        x_pos = np.arange(len(labels))
+        means = list(data.mean())
+        stds = list(data.std())
+        print(len(labels))
+        print(len(means))
+        print(stds)
+
+
+        plt.rcParams['figure.figsize'] = [7.8, 6.8]
+        plt.rcParams['figure.autolayout'] = True
+        print(plt.rcParams['figure.figsize'])
+        
+
+        fig = plt.figure()
+        ax = plt.gca()
+
+        bars = ax.bar(x_pos, means,
+            yerr=stds,
+            align='center',
+            alpha=0.5,
+            ecolor='black',
+            capsize=10,
+            color='#0072b2')
+        ax.bar_label(bars, fmt='%.1f%%')
+        ax.set_ylabel('% of transcripts')
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels)
+        ax.set_title('Premature Polyadenylation without STOP Codon in frame in different conditions')
+        plt.xticks(rotation=90)
         plt.tight_layout()
         ax.figure.savefig(output[0], transparent=True)
         ax.figure.savefig(output[1], transparent=True)

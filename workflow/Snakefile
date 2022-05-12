@@ -31,6 +31,7 @@ rule all:
         expand("results/plots/fig_1A{ext}", ext=['.pdf', '.svg', '.png']),
         expand("results/plots/fig_1B_{condition}{ext}", condition=set(samples['condition']), ext=['.pdf', '.svg', '.png']),
         expand("results/plots/fig_1C_{condition}{ext}", condition=set(samples['condition']), ext=['.pdf', '.svg', '.png']),
+        expand("results/plots/fig_1D{ext}", ext=['.pdf', '.svg', '.png']),
         expand("results/plots/fig_3A{ext}", ext=['.pdf', '.svg', '.png']),
         expand("results/premature_polya_by_region/{sample}.txt", sample=samples['sample'])
 
