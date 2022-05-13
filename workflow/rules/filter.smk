@@ -293,7 +293,7 @@ rule plot_premature_polyadenylation_x_expression:
             ax.set_ylim(0, 1000000)
             ax.set_xlabel("Counts 3' UTR")
             ax.set_ylabel("Counts CDS")
-            ax.set_title(wildcards.condition + ' R2: ' + "{:.2f}".format(r_squared))
+            ax.set_title(wildcards.condition + ' R²: ' + "{:.2f}".format(r_squared))
             ax.figure.savefig(output[0], transparent=True)
             ax.figure.savefig(output[1], transparent=True)
             ax.figure.savefig(output[2], transparent=True)
@@ -404,6 +404,19 @@ rule plot_polyadenylation_in_cds_with_stop_in_frame:
 
         data = pd.DataFrame.from_dict(cond_dict_out_frame)
 
+        data = data[[
+        'YPD_log_phase_yeast_cells', 
+        'YPD_diauxic_yeast_cells', 
+        'YPGal_yeast_cells', 
+        'Minimal_yeast_cells', 
+        'Sorbitol_yeast_cells', 
+        'Rpb1_H1085Q_slower_yeast_cells',
+        'Rpb1_F1086S_slow_yeast_cells',
+        'Rpb1_L1101S_fast_yeast_cells',
+        'Rpb1_E1103G_faster_yeast_cells',
+        'spt4_yeast_cells',
+        'hpr1_yeast_cells']]
+
         labels = list(data.columns)
         x_pos = np.arange(len(labels))
         means = list(data.mean())
@@ -500,6 +513,18 @@ rule plot_polyadenylation_in_cds_by_condition:
                 
 
         data = pd.DataFrame.from_dict(cond_dict_cds)
+        data = data[[
+        'YPD_log_phase_yeast_cells', 
+        'YPD_diauxic_yeast_cells', 
+        'YPGal_yeast_cells', 
+        'Minimal_yeast_cells', 
+        'Sorbitol_yeast_cells', 
+        'Rpb1_H1085Q_slower_yeast_cells',
+        'Rpb1_F1086S_slow_yeast_cells',
+        'Rpb1_L1101S_fast_yeast_cells',
+        'Rpb1_E1103G_faster_yeast_cells',
+        'spt4_yeast_cells',
+        'hpr1_yeast_cells']]
 
         labels = list(data.columns)
         x_pos = np.arange(len(labels))
@@ -535,3 +560,4 @@ rule plot_polyadenylation_in_cds_by_condition:
         ax.figure.savefig(output[0], transparent=True)
         ax.figure.savefig(output[1], transparent=True)
         ax.figure.savefig(output[2], transparent=True)
+        
