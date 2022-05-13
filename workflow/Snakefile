@@ -24,8 +24,9 @@ rule all:
         #expand("results/filter_non_specific_annealing/{sample}.bam", sample=samples['sample']),
         # The first rule should define the default target files
         # Subsequent target rules can be specified below. They should start with all_*.
-        "results/classify/feature_distribution.csv",
+        #"results/classify/feature_distribution.csv",
         "results/classify_old/feature_distribution.csv",
+        expand("results/filter_non_specific_annealing/{sample}.bam", sample=samples['sample']),
         #expand("results/filter_bam_by_peak/{sample}.bam", sample=samples['sample']),
         #expand("results/peak_detection/{sample}.bed", sample=samples['sample']),
         expand("results/plots/fig_1A{ext}", ext=['.pdf', '.svg', '.png']),

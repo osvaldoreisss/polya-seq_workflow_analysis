@@ -21,7 +21,7 @@ rule filter_non_specific_annealing:
     shell:
         "python workflow/scripts/filter.py --genome {input[0]} --sam {input[1]} --output {output} 2> {log}; samtools index {output}"
 
-rule classify_polya:
+rule classify_polya_peak:
     input: 
         "results/filter_bam_by_peak/{sample}.bam",
         #"results/expressed/most_expressed.txt"
@@ -35,7 +35,7 @@ rule classify_polya:
     shell:
         "python workflow/scripts/poly_A_classify.py --gtf {params.gtf} --bam {input[0]} --prefix {output[1]} > {output[0]}; touch {output[1]}"
 
-rule classify_polya_old:
+rule classify_polya:
     input: 
         "results/filter_non_specific_annealing/{sample}.bam",
         #"results/expressed/most_expressed.txt"
@@ -49,7 +49,7 @@ rule classify_polya_old:
     shell:
         "python workflow/scripts/poly_A_classify.py --gtf {params.gtf} --bam {input[0]} --prefix {output[1]} > {output[0]}; touch {output[1]}"
 
-rule feauture_distribution:
+rule feauture_distribution_peak:
     input:
         expand("results/classify/{sample}.tsv", sample=samples['sample'])
     output:
@@ -85,7 +85,7 @@ rule feauture_distribution:
         data = data * 100
         data.to_csv(output[0])
 
-rule feauture_distribution_old:
+rule feauture_distribution:
     input:
         expand("results/classify_old/{sample}.tsv", sample=samples['sample'])
     output:
@@ -425,9 +425,9 @@ rule plot_polyadenylation_in_cds_with_stop_in_frame:
             yerr=stds,
             align='center',
             alpha=0.5,
-            ecolor='black',
-            capsize=10,
-            color='#0072b2')
+                ecolor='black',
+                capsize=10,
+                color='#0072b2')
         ax.bar_label(bars, fmt='%.1f%%')
         ax.set_ylabel('% of transcripts')
         ax.set_xticks(x_pos)
