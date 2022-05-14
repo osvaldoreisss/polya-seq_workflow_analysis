@@ -463,6 +463,7 @@ rule plot_polyadenylation_in_cds_by_condition:
         import pandas as pd
         import matplotlib.pyplot as plt
         import numpy as np
+        import scipy.stats as stats
 
         cond_sample_dict = dict()
 
@@ -513,7 +514,7 @@ rule plot_polyadenylation_in_cds_by_condition:
                 
 
         data = pd.DataFrame.from_dict(cond_dict_cds)
-        data = data[[
+        conditions_labels = [
         'YPD_log_phase_yeast_cells', 
         'YPD_diauxic_yeast_cells', 
         'YPGal_yeast_cells', 
@@ -524,14 +525,30 @@ rule plot_polyadenylation_in_cds_by_condition:
         'Rpb1_L1101S_fast_yeast_cells',
         'Rpb1_E1103G_faster_yeast_cells',
         'spt4_yeast_cells',
-        'hpr1_yeast_cells']]
+        'hpr1_yeast_cells']
+        data = data[conditions_labels]
+
+        pvalue_list = []
+        significance_list = []
+        for i, c in enumerate(conditions_labels):
+            if i==0:
+                pvalue_list.append(1)
+                significance_list.append(False)
+            else:
+                statistic, pvalue = stats.ttest_ind(data[conditions_labels[0]], data[conditions_labels[i]])
+                print(f"\n\nT-test {conditions_labels[i]}\nstatistic={statistic}  p-value={pvalue}\n\n")
+                pvalue_list.append(pvalue)
+                if pvalue < 0.05:
+                    significance_list.append(True)
+                else:
+                    significance_list.append(False)
 
         labels = list(data.columns)
         x_pos = np.arange(len(labels))
         means = list(data.mean())
         stds = list(data.std())
-        print(len(labels))
-        print(len(means))
+        print(labels)
+        print(means)
         print(stds)
 
 
@@ -556,6 +573,15 @@ rule plot_polyadenylation_in_cds_by_condition:
         ax.set_xticklabels(labels)
         ax.set_title('Premature Polyadenylation in different conditions')
         plt.xticks(rotation=90)
+
+        for p,sig in zip(ax.patches,significance_list):
+            if sig == True:
+                ax.annotate('*', (p.get_x() + p.get_width() / 2., p.get_height()+0.7),
+                        ha='center', va='center', fontsize=11, color='black', rotation=90, xytext=(0,10),
+                        textcoords='offset points')
+
+        bottom,top = plt.ylim()
+        plt.ylim(bottom, top+1)
         plt.tight_layout()
         ax.figure.savefig(output[0], transparent=True)
         ax.figure.savefig(output[1], transparent=True)
