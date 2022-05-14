@@ -1,29 +1,30 @@
 rule trim_galore:
-    input: 
-        get_fastq
-    output: 
-        directory("results/quality_analysis/{sample}.{run}")
+    input:
+        get_fastq,
+    output:
+        directory("results/quality_analysis/{sample}.{run}"),
     conda:
         "../envs/trim_galore.yaml"
     threads: threads
     params:
-        **config["params"]
-    log: 
-        "results/logs/trim_galore/{sample}-{run}.log"
+        **config["params"],
+    log:
+        "results/logs/trim_galore/{sample}-{run}.log",
     shell:
         "trim_galore {params.trim} --cores {threads} --output_dir {output} {input} 2> {log}"
 
+
 rule concatenate:
-    input: 
-        lambda wildcards: \
-            [f"results/quality_analysis/{wildcards.sample}.{run}" \
-                for run in samples.loc[(wildcards.sample), ["run"]]['run'].dropna()
-            ]
-    output: 
-        fq1="results/concatenated/{sample}.fq.gz"
+    input:
+        lambda wildcards: [
+            f"results/quality_analysis/{wildcards.sample}.{run}"
+            for run in samples.loc[(wildcards.sample), ["run"]]["run"].dropna()
+        ],
+    output:
+        fq1="results/concatenated/{sample}.fq.gz",
     threads: 1
     log:
-        "results/logs/concatenate/{sample}.log"
+        "results/logs/concatenate/{sample}.log",
     shell:
         """
         set +e
@@ -32,11 +33,12 @@ rule concatenate:
         cat $FQ1 > {output.fq1} 2> {log}
         """
 
+
 rule trim_5_prime_Ts:
-    input: 
-        "results/concatenated/{sample}.fq.gz"
+    input:
+        "results/concatenated/{sample}.fq.gz",
     output:
-        "results/trim_5_prime_Ts/{sample}.fastq.gz"
+        "results/trim_5_prime_Ts/{sample}.fastq.gz",
     shell:
         """
         set +e

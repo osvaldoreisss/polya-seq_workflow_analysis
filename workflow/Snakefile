@@ -4,18 +4,25 @@
 
 report: "report/workflow.rst"
 
+
 # Allow users to fix the underlying OS via singularity.
-singularity: "docker://continuumio/miniconda3"
+container: "docker://continuumio/miniconda3"
+
 
 onsuccess:
     print("Workflow finished, no error")
-    #shell("mail -s \"Everything goes fine in the analysis \" osvaldoreisss@gmail.com < {log}")
+    # shell("mail -s \"Everything goes fine in the analysis \" osvaldoreisss@gmail.com < {log}")
+
+
 
 onerror:
     print("An error occurred")
-    #shell("mail -s "an error occurred" osvaldoreisss@gmail.com < {log}")
+    # shell("mail -s "an error occurred" osvaldoreisss@gmail.com < {log}")
+
+
 
 include: "rules/common.smk"
+
 
 rule all:
     input:
@@ -26,15 +33,28 @@ rule all:
         # Subsequent target rules can be specified below. They should start with all_*.
         #"results/classify/feature_distribution.csv",
         "results/classify_old/feature_distribution.csv",
-        expand("results/filter_non_specific_annealing/{sample}.bam", sample=samples['sample']),
+        expand(
+            "results/filter_non_specific_annealing/{sample}.bam",
+            sample=samples["sample"],
+        ),
         #expand("results/filter_bam_by_peak/{sample}.bam", sample=samples['sample']),
         #expand("results/peak_detection/{sample}.bed", sample=samples['sample']),
-        expand("results/plots/fig_1A{ext}", ext=['.pdf', '.svg', '.png']),
-        expand("results/plots/fig_1B_{condition}{ext}", condition=set(samples['condition']), ext=['.pdf', '.svg', '.png']),
-        expand("results/plots/fig_1C_{condition}{ext}", condition=set(samples['condition']), ext=['.pdf', '.svg', '.png']),
-        expand("results/plots/fig_1D{ext}", ext=['.pdf', '.svg', '.png']),
-        expand("results/plots/fig_3A{ext}", ext=['.pdf', '.svg', '.png']),
-        expand("results/premature_polya_by_region/{sample}.txt", sample=samples['sample'])
+        expand("results/plots/fig_1A{ext}", ext=[".pdf", ".svg", ".png"]),
+        expand(
+            "results/plots/fig_1B_{condition}{ext}",
+            condition=set(samples["condition"]),
+            ext=[".pdf", ".svg", ".png"],
+        ),
+        expand(
+            "results/plots/fig_1C_{condition}{ext}",
+            condition=set(samples["condition"]),
+            ext=[".pdf", ".svg", ".png"],
+        ),
+        expand("results/plots/fig_1D{ext}", ext=[".pdf", ".svg", ".png"]),
+        expand("results/plots/fig_3A{ext}", ext=[".pdf", ".svg", ".png"]),
+        expand(
+            "results/premature_polya_by_region/{sample}.txt", sample=samples["sample"]
+        ),
 
 
 include: "rules/quality.smk"
